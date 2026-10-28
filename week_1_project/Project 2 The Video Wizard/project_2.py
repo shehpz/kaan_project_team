@@ -34,7 +34,7 @@ elif start_value == 2:
     
     path = input("Enter video path")
     
-    video_capture = cv2.VideoCapture(path)
+    video_capture = cv2.VideoCapture("path")
     
     while True:
         ret,frame = video_capture.read()
