@@ -1,121 +1,137 @@
 import cv2
 import numpy as np
 
-# Global variables for interactive drawing (Task 4)
-drawing_mode = False
-canvas_points = []
-
-def mouse_callback(event, x, y, flags, param):
+def detect_shape(contour):
     """
-    Mouse callback function to capture user clicks and draw on screen.
+    Approximates contour shape and returns the shape name (Bonus Task).
     """
-    global drawing_mode, canvas_points
+    # Calculate perimeter of contour
+    perimeter = cv2.arcLength(contour, True)
+    # Approximate polygon curve with epsilon accuracy
+    approx_polygon = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
+    
+    vertices_count = len(approx_polygon)
+    
+    if vertices_count == 3:
+        return "Triangle"
+    elif vertices_count == 4:
+        # Check aspect ratio to distinguish Square vs Rectangle
+        x, y, w, h = cv2.boundingRect(approx_polygon)
+        aspect_ratio = float(w) / h
+        if 0.95 <= aspect_ratio <= 1.05:
+            return "Square"
+        else:
+            return "Rectangle"
+    elif vertices_count > 4:
+        return "Circle"
+    return "Unknown"
 
-    if event == cv2.EVENT_LBUTTONDOWN:
-        drawing_mode = True
-        canvas_points.append((x, y))
-    elif event == cv2.EVENT_MOUSEMOVE and drawing_mode:
-        canvas_points.append((x, y))
-    elif event == cv2.EVENT_LBUTTONUP:
-        drawing_mode = False
-
-def process_video_stream(source):
+def process_frame(frame):
     """
-    Reads video frames from webcam or file, draws shapes/text, 
-    and handles interactive mouse/keyboard events.
+    Applies HSV color filtering, contour detection, noise filtering, 
+    bounding box drawing, and shape classification.
     """
-    global canvas_points
+    # Task 1: Convert BGR image to HSV color space
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    video_capture = cv2.VideoCapture(source)
+    # Task 1: Define color thresholds for target object (e.g., Bright Green / Pen)
+    # Adjust lower and upper HSV boundaries according to target object color
+    lower_color = np.array([35, 50, 50])
+    upper_color = np.array([85, 255, 255])
 
-    if not video_capture.isOpened():
-        print(f"Hata: Video kaynagi ({source}) acilamadi.")
-        return
+    # Task 1: Create binary mask using cv2.inRange
+    color_mask = cv2.inRange(hsv_frame, lower_color, upper_color)
 
-    # Task 3: Get video frame dimensions
-    frame_width = int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    # Optional Morphological Operations to reduce noise in binary mask
+    kernel = np.ones((5, 5), np.uint8)
+    color_mask = cv2.morphologyEx(color_mask, cv2.MORPH_OPEN, kernel)
 
-    # Task 4: Set mouse callback function on the display window
-    window_name = "Project 2 - Video Wizard"
-    cv2.namedWindow(window_name)
-    cv2.setMouseCallback(window_name, mouse_callback)
+    # Task 2: Find contours in the thresholded binary mask
+    contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    screenshot_counter = 1
+    largest_contour = None
+    max_area = 0
 
-    print("\n--- Kontrol Tuslari ---")
-    print("'s' -> Ekran goruntusu kaydet")
-    print("'c' -> Ekrandaki cizimleri temizle")
-    print("'q' -> Cikis yap\n")
+    # Task 3: Filter contours based on area threshold to remove noise
+    min_area_threshold = 500  # Threshold to suppress small noises
 
-    while True:
-        ret, current_frame = video_capture.read()
-
-        # Break loop if video file ends or stream fails
-        if not ret:
-            print("Video akisi sona erdi veya cerceve okunamadi.")
-            break
-
-        # Task 3: Draw shapes (rectangles and circles) and text on video frames
-        # Rectangle overlay at top-left
-        cv2.rectangle(current_frame, (20, 20), (280, 80), (0, 0, 0), -1)
-        cv2.rectangle(current_frame, (20, 20), (280, 80), (0, 255, 0), 2)
+    for contour in contours:
+        contour_area = cv2.contourArea(contour)
         
-        # Text overlay
-        cv2.putText(current_frame, "REC - LIVE FEED", (30, 55),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        if contour_area > min_area_threshold:
+            # Task 2: Draw detected valid contours on frame
+            cv2.drawContours(frame, [contour], -1, (0, 255, 0), 2)
 
-        # Draw target circle at frame center
-        center_x, center_y = frame_width // 2, frame_height // 2
-        cv2.circle(current_frame, (center_x, center_y), 30, (0, 0, 255), 2)
+            # Bonus Task: Detect specific shape (Triangle, Square, Circle)
+            shape_name = detect_shape(contour)
 
-        # Task 4: Draw interactive user lines from mouse input
-        for idx in range(1, len(canvas_points)):
-            if canvas_points[idx - 1] is not None and canvas_points[idx] is not None:
-                cv2.line(current_frame, canvas_points[idx - 1], canvas_points[idx], (255, 0, 0), 4)
+            # Track largest object contour
+            if contour_area > max_area:
+                max_area = contour_area
+                largest_contour = contour
 
-        # Display final processed frame
-        cv2.imshow(window_name, current_frame)
+    # Task 4: Draw bounding box around the largest detected object
+    if largest_contour is not None:
+        x, y, width, height = cv2.boundingRect(largest_contour)
+        cv2.rectangle(frame, (x, y), (x + width, y + height), (0, 0, 255), 3)
 
-        # Task 5: Capture keyboard inputs
-        key = cv2.waitKey(30) & 0xFF
+        # Bonus Task: Display shape name on the detected largest object
+        detected_shape = detect_shape(largest_contour)
+        text_label = f"Target ({detected_shape})"
+        cv2.putText(frame, text_label, (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-        # Exit application
-        if key == ord('q'):
-            print("Kullanici tarafindan cikis yapildi.")
-            break
-
-        # Save screenshot
-        elif key == ord('s'):
-            filename = f"screenshot_{screenshot_counter}.png"
-            cv2.imwrite(filename, current_frame)
-            print(f"Ekran goruntusu kaydedildi: {filename}")
-            screenshot_counter += 1
-
-        # Clear drawn lines
-        elif key == ord('c'):
-            canvas_points.clear()
-            print("Ekrandaki cizimler temizlendi.")
-
-    # Release video stream and close all windows
-    video_capture.release()
-    cv2.destroyAllWindows()
+    return frame, color_mask
 
 def main():
-    print("=== PROJECT 2: THE VIDEO WIZARD ===")
-    print("1 - Canli Webcam Akisi")
-    print("2 - Video Dosyasi Oynat")
+    print("=== PROJECT 3: SHAPE & COLOR DETECTIVE ===")
+    print("1 - Görsel Dosyası Üzerinde Nesne Tespiti")
+    print("2 - Canlı Webcam Üzerinde Nesne Tespiti")
     
-    # Rule: Get user selection via keyboard
+    # Rule: Get user input via keyboard
     choice = input("Lutfen secim yapiniz (1 veya 2): ").strip()
 
     if choice == '1':
-        # Task 1: Access webcam using device index 0
-        process_video_stream(0)
+        # Rule: Ask file path from user
+        image_path = input("Lutfen gorsel dosyasinin yolunu giriniz (orn: test.jpg): ").strip()
+        input_image = cv2.imread(image_path)
+
+        if input_image is None:
+            print(f"Hata: '{image_path}' konumundaki gorsel yuklenemedi.")
+            return
+
+        processed_frame, mask_frame = process_frame(input_image)
+
+        cv2.imshow("Original with Detection", processed_frame)
+        cv2.imshow("HSV Color Mask", mask_frame)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
     elif choice == '2':
-        # Task 2: Read video file path from user input
-        video_path = input("Lutfen video dosyasinin yolunu giriniz (orn: sample.mp4): ").strip()
-        process_video_stream(video_path)
+        video_capture = cv2.VideoCapture(0)
+
+        if not video_capture.isOpened():
+            print("Hata: Webcam acilamadi.")
+            return
+
+        print("\nCanli tespit baslatildi. Cikis yapmak icin 'q' tusuna basiniz.\n")
+
+        while True:
+            ret, frame = video_capture.read()
+            if not ret:
+                break
+
+            processed_frame, mask_frame = process_frame(frame)
+
+            cv2.imshow("Live Shape & Color Detection", processed_frame)
+            cv2.imshow("Color Mask", mask_frame)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        video_capture.release()
+        cv2.destroyAllWindows()
+
     else:
         print("Gecersiz secim yapildi.")
 

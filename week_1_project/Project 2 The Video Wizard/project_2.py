@@ -32,31 +32,6 @@ def mouse_callback(event, x, y, flags, param):
 #This topic we need to two main method; 1- Live camera or 2- Video on computer. So I made 2 function for this topic.
 #This think ı found on https://github.com/niconielsen32/opencv-python-tutorials/tree/main/10_video_basics.
 
-def show_live_video():
-    
-    
-    # If reference value is 0 on cv2.VideoCapture(reference), computer live camera will be open.
-    camera = cv2.VideoCapture(0)
-
-    try:
-        if not camera.isOpened():
-            print("Not open camera.")
-            return
-
-        # Here we define frame for every frame image for video. And we use while loop for playing image so it's video.
-        while True:
-            received, frame = camera.read()
-            if not received:
-                print("Can't receive frame. Exiting ...")
-                break
-
-            cv2.imshow("Camera", frame)
-
-            if cv2.waitKey(1) == ord("q"):
-                break
-    finally:
-        camera.release()
-        cv2.destroyAllWindows()
 
 
 def play_video(video_path):
@@ -132,7 +107,7 @@ def main():
     start_value = int(input("Which do you want?"))
 
     if start_value == 1:
-        show_live_video()
+        play_video(0)
     elif start_value == 2:
         video_path = input("Enter video path: ")
         play_video(video_path)
