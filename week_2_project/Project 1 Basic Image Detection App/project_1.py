@@ -1,13 +1,3 @@
-""" 
-1. Load a YOLO model (yolov26n.pt recommended)
-2. Let the user choose an image OR loads a fixed test image
-3. Run YOLO object detection on the image
-4. Print:
-    1. Detected class names
-    2. Confidence scores
-    3. Bounding box coordinates
-5. Save and display the result image with detection boxes drawn """
-
 
 import cv2
 from ultralytics import YOLO

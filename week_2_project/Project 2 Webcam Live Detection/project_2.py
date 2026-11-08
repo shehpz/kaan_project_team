@@ -1,13 +1,3 @@
-""" 
-1. Initialize the webcam using OpenCV (cv2.VideoCapture(0)).
-2. Load the YOLO model (yolov11n.pt).
-3. Inside a loop:
-    1. Read a frame from the webcam
-    2. Run YOLO detection on the frame
-    3. Draw bounding boxes and labels
-    4. Display the processed frame
-4. Exit the program when the user presses Q. """
-
 import cv2
 import time # calculate FPS
 from ultralytics import YOLO

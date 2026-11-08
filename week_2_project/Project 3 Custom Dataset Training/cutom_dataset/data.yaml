@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 4
+names: ['cable', 'keyboard', 'mouse', 'water bottel']
+
+roboflow:
+  workspace: salih-serin
+  project: my-first-project-cckoy
+  version: 1
+  license: Private
+  url: https://app.roboflow.com/salih-serin/my-first-project-cckoy/1
