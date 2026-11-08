@@ -16,10 +16,9 @@ from ultralytics import YOLO
 
 
 
-old_frame_time = 0
-new_frame_time = 0
 
-def detect_webcam(model_path='yolo11n.pt'):
+
+def detect_webcam(model_path='yolo11n.pt', now_time = time.time):
     # Load the YOLO model
     model = YOLO(model_path)
 
@@ -29,6 +28,9 @@ def detect_webcam(model_path='yolo11n.pt'):
     if not cap.isOpened():
         print("Error: Could not open webcam.")
         return
+    
+    old_frame_time = 0  # Initialize old frame time for FPS calculation
+    new_frame_time = 0  # Initialize new frame time for FPS calculation
 
     while True:
         # Read a frame from the webcam
@@ -44,9 +46,13 @@ def detect_webcam(model_path='yolo11n.pt'):
         annotated_frame = results[0].plot()
         
         # Calculate FPS
+        
         new_frame_time = time.time()
-        fps = 1 / (new_frame_time - old_frame_time)
-        old_frame_time = new_frame_time
+        fps = 1 / (new_frame_time - old_frame_time) if (new_frame_time - old_frame_time) > 0 else 0
+        old_frame_time = new_frame_time 
+        
+            
+        
         
         # Display FPS on the frame
         cv2.putText(annotated_frame, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
