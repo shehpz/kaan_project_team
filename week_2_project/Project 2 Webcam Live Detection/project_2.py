@@ -43,14 +43,14 @@ def detect_webcam(model_path='yolo11n.pt'):
         # Draw bounding boxes and labels on the frame
         annotated_frame = results[0].plot()
         
-        frame_count = 0
-        start_time = time.time()
+        # Calculate FPS
+        new_frame_time = time.time()
+        fps = 1 / (new_frame_time - old_frame_time)
+        old_frame_time = new_frame_time
         
-        fps = 1 / (time.time() - start_time)
-
+        # Display FPS on the frame
         cv2.putText(annotated_frame, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-        
-        frame_count += 1
+
         
 
         # Display the processed frame
