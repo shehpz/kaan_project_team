@@ -9,9 +9,15 @@
 4. Exit the program when the user presses Q. """
 
 import cv2
+import time # calculate FPS
 from ultralytics import YOLO
 
 #https://github.com/niconielsen32/opencv-python-tutorials/blob/main/21_object_detection_ultralytics/README.md
+
+
+
+old_frame_time = 0
+new_frame_time = 0
 
 def detect_webcam(model_path='yolo11n.pt'):
     # Load the YOLO model
@@ -36,6 +42,16 @@ def detect_webcam(model_path='yolo11n.pt'):
 
         # Draw bounding boxes and labels on the frame
         annotated_frame = results[0].plot()
+        
+        frame_count = 0
+        start_time = time.time()
+        
+        fps = 1 / (time.time() - start_time)
+
+        cv2.putText(annotated_frame, f'FPS: {int(fps)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        
+        frame_count += 1
+        
 
         # Display the processed frame
         cv2.imshow('Webcam Live Detection', annotated_frame)
